@@ -19,6 +19,8 @@
 
 #include <unistd.h>
 
+#include <utility>
+
 #if defined(AUTO_INITIALIZE_EASYLOGGINGPP)
 INITIALIZE_EASYLOGGINGPP
 #endif
@@ -279,10 +281,10 @@ Configuration& Configuration::operator=(const Configuration& c) {
 }
 
 /// @brief Full constructor used to sets value of configuration
-Configuration::Configuration(Level level, ConfigurationType configurationType, const std::string& value) :
+Configuration::Configuration(Level level, ConfigurationType configurationType, std::string  value) :
   m_level(level),
   m_configurationType(configurationType),
-  m_value(value) {
+  m_value(std::move(value)) {
 }
 
 void Configuration::log(el::base::type::ostream_t& os) const {
@@ -626,8 +628,8 @@ void LogBuilder::convertToColoredOutput(base::type::string_t* logLine, Level lev
 
 // Logger
 
-Logger::Logger(const std::string& id, base::LogStreamsReferenceMap* logStreamsReference) :
-  m_id(id),
+Logger::Logger(std::string  id, base::LogStreamsReferenceMap* logStreamsReference) :
+  m_id(std::move(id)),
   m_typedConfigurations(nullptr),
   m_parentApplicationName(std::string()),
   m_isConfigured(false),
@@ -635,9 +637,9 @@ Logger::Logger(const std::string& id, base::LogStreamsReferenceMap* logStreamsRe
   initUnflushedCount();
 }
 
-Logger::Logger(const std::string& id, const Configurations& configurations,
+Logger::Logger(std::string  id, const Configurations& configurations,
                base::LogStreamsReferenceMap* logStreamsReference) :
-  m_id(id),
+  m_id(std::move(id)),
   m_typedConfigurations(nullptr),
   m_parentApplicationName(std::string()),
   m_isConfigured(false),
@@ -1472,8 +1474,8 @@ LogFormat::LogFormat() :
   m_currentHost(base::utils::OS::currentHost()) {
 }
 
-LogFormat::LogFormat(Level level, const base::type::string_t& format)
-  : m_level(level), m_userFormat(format), m_currentUser(base::utils::OS::currentUser()),
+LogFormat::LogFormat(Level level, base::type::string_t  format)
+  : m_level(level), m_userFormat(std::move(format)), m_currentUser(base::utils::OS::currentUser()),
     m_currentHost(base::utils::OS::currentHost()) {
   parseFromFormat(m_userFormat);
 }
@@ -1916,8 +1918,8 @@ bool RegisteredHitCounters::validateNTimes(const char* filename, base::type::Lin
 
 // RegisteredLoggers
 
-RegisteredLoggers::RegisteredLoggers(const LogBuilderPtr& defaultLogBuilder) :
-  m_defaultLogBuilder(defaultLogBuilder) {
+RegisteredLoggers::RegisteredLoggers(LogBuilderPtr  defaultLogBuilder) :
+  m_defaultLogBuilder(std::move(defaultLogBuilder)) {
   m_defaultConfigurations.setToDefault();
 }
 
@@ -2930,14 +2932,14 @@ namespace debug {
 
 // StackTrace
 
-StackTrace::StackTraceEntry::StackTraceEntry(std::size_t index, const std::string& loc, const std::string& demang,
-    const std::string& hex,
-    const std::string& addr) :
+StackTrace::StackTraceEntry::StackTraceEntry(std::size_t index, std::string  loc, std::string  demang,
+    std::string  hex,
+    std::string  addr) :
   m_index(index),
-  m_location(loc),
-  m_demangled(demang),
-  m_hex(hex),
-  m_addr(addr) {
+  m_location(std::move(loc)),
+  m_demangled(std::move(demang)),
+  m_hex(std::move(hex)),
+  m_addr(std::move(addr)) {
 }
 
 std::ostream& operator<<(std::ostream& ss, const StackTrace::StackTraceEntry& si) {
