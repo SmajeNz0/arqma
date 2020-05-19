@@ -303,7 +303,7 @@ bool Configuration::Predicate::operator()(const Configuration* conf) const {
 
 // Configurations
 
-Configurations::Configurations(void) :
+Configurations::Configurations() :
   m_configurationFile(std::string()),
   m_isFromFile(false) {
 }
@@ -353,7 +353,7 @@ void Configurations::setFromBase(Configurations* base) {
 bool Configurations::hasConfiguration(ConfigurationType configurationType) {
   base::type::EnumType lIndex = LevelHelper::kMinValid;
   bool result = false;
-  LevelHelper::forEachLevel(&lIndex, [&](void) -> bool {
+  LevelHelper::forEachLevel(&lIndex, [&]() -> bool {
     if (hasConfiguration(LevelHelper::castFromInt(lIndex), configurationType)) {
       result = true;
     }
@@ -388,7 +388,7 @@ void Configurations::set(Configuration* conf) {
   set(conf->level(), conf->configurationType(), conf->value());
 }
 
-void Configurations::setToDefault(void) {
+void Configurations::setToDefault() {
   setGlobally(ConfigurationType::Enabled, std::string("true"), true);
   setGlobally(ConfigurationType::Filename, std::string(base::consts::kDefaultLogFile), true);
 #if defined(ELPP_NO_LOG_TO_FILE)
@@ -412,7 +412,7 @@ void Configurations::setToDefault(void) {
   set(Level::Trace, ConfigurationType::Format, std::string("%datetime %level [%logger] [%func] [%loc] %msg"));
 }
 
-void Configurations::setRemainingToDefault(void) {
+void Configurations::setRemainingToDefault() {
   base::threading::ScopedLock scopedLock(lock());
 #if defined(ELPP_NO_LOG_TO_FILE)
   unsafeSetIfNotExist(Level::Global, ConfigurationType::Enabled, std::string("false"));
@@ -589,7 +589,7 @@ void Configurations::setGlobally(ConfigurationType configurationType, const std:
     set(Level::Global, configurationType, value);
   }
   base::type::EnumType lIndex = LevelHelper::kMinValid;
-  LevelHelper::forEachLevel(&lIndex, [&](void) -> bool {
+  LevelHelper::forEachLevel(&lIndex, [&]() -> bool {
     set(LevelHelper::castFromInt(lIndex), configurationType, value);
     return false;  // Do not break lambda function yet as we need to set all levels regardless
   });
@@ -601,7 +601,7 @@ void Configurations::unsafeSetGlobally(ConfigurationType configurationType, cons
     unsafeSet(Level::Global, configurationType, value);
   }
   base::type::EnumType lIndex = LevelHelper::kMinValid;
-  LevelHelper::forEachLevel(&lIndex, [&](void) -> bool  {
+  LevelHelper::forEachLevel(&lIndex, [&]() -> bool  {
     unsafeSet(LevelHelper::castFromInt(lIndex), configurationType, value);
     return false;  // Do not break lambda function yet as we need to set all levels regardless
   });
@@ -690,7 +690,7 @@ void Logger::configure(const Configurations& configurations) {
   m_isConfigured = true;
 }
 
-void Logger::reconfigure(void) {
+void Logger::reconfigure() {
   ELPP_INTERNAL_INFO(1, "Reconfiguring logger [" << m_id << "]");
   configure(m_configurations);
 }
@@ -704,11 +704,11 @@ bool Logger::isValidId(const std::string& id) {
   return true;
 }
 
-void Logger::flush(void) {
+void Logger::flush() {
   ELPP_INTERNAL_INFO(3, "Flushing logger [" << m_id << "] all levels");
   base::threading::ScopedLock scopedLock(lock());
   base::type::EnumType lIndex = LevelHelper::kMinValid;
-  LevelHelper::forEachLevel(&lIndex, [&](void) -> bool {
+  LevelHelper::forEachLevel(&lIndex, [&]() -> bool {
     flush(LevelHelper::castFromInt(lIndex), nullptr);
     return false;
   });
@@ -728,18 +728,18 @@ void Logger::flush(Level level, base::type::fstream_t* fs) {
   }
 }
 
-void Logger::initUnflushedCount(void) {
+void Logger::initUnflushedCount() {
   m_unflushedCount.clear();
   base::type::EnumType lIndex = LevelHelper::kMinValid;
-  LevelHelper::forEachLevel(&lIndex, [&](void) -> bool {
+  LevelHelper::forEachLevel(&lIndex, [&]() -> bool {
     m_unflushedCount.insert(std::make_pair(LevelHelper::castFromInt(lIndex), 0));
     return false;
   });
 }
 
-void Logger::resolveLoggerFormatSpec(void) const {
+void Logger::resolveLoggerFormatSpec() const {
   base::type::EnumType lIndex = LevelHelper::kMinValid;
-  LevelHelper::forEachLevel(&lIndex, [&](void) -> bool {
+  LevelHelper::forEachLevel(&lIndex, [&]() -> bool {
     base::LogFormat* logFormat =
     const_cast<base::LogFormat*>(&m_typedConfigurations->logFormat(LevelHelper::castFromInt(lIndex)));
     base::utils::Str::replaceFirstWithEscape(logFormat->m_format, base::consts::kLoggerIdFormatSpecifier, m_id);
@@ -1147,7 +1147,7 @@ std::string OS::getEnvironmentVariable(const char* variableName, const char* def
   return std::string(val);
 }
 
-std::string OS::currentUser(void) {
+std::string OS::currentUser() {
 #if ELPP_OS_UNIX && !ELPP_OS_ANDROID
   return getEnvironmentVariable("USER", base::consts::kUnknownUser, "whoami");
 #elif ELPP_OS_WINDOWS
@@ -1160,7 +1160,7 @@ std::string OS::currentUser(void) {
 #endif  // ELPP_OS_UNIX && !ELPP_OS_ANDROID
 }
 
-std::string OS::currentHost(void) {
+std::string OS::currentHost() {
 #if ELPP_OS_UNIX && !ELPP_OS_ANDROID
   return getEnvironmentVariable("HOSTNAME", base::consts::kUnknownHost, "hostname");
 #elif ELPP_OS_WINDOWS
@@ -1173,7 +1173,7 @@ std::string OS::currentHost(void) {
 #endif  // ELPP_OS_UNIX && !ELPP_OS_ANDROID
 }
 
-bool OS::termSupportsColor(void) {
+bool OS::termSupportsColor() {
   std::string term = getEnvironmentVariable("TERM", "");
   return term == "xterm" || term == "xterm-color" || term == "xterm-256color"
          || term == "screen" || term == "linux" || term == "cygwin"
@@ -1392,11 +1392,11 @@ bool CommandLineArgs::hasParam(const char* paramKey) const {
   return std::find(m_params.begin(), m_params.end(), std::string(paramKey)) != m_params.end();
 }
 
-bool CommandLineArgs::empty(void) const {
+bool CommandLineArgs::empty() const {
   return m_params.empty() && m_paramsWithValue.empty();
 }
 
-std::size_t CommandLineArgs::size(void) const {
+std::size_t CommandLineArgs::size() const {
   return m_params.size() + m_paramsWithValue.size();
 }
 
@@ -1462,7 +1462,7 @@ void SubsecondPrecision::init(int width) {
 
 // LogFormat
 
-LogFormat::LogFormat(void) :
+LogFormat::LogFormat() :
   m_level(Level::Unknown),
   m_userFormat(base::type::string_t()),
   m_format(base::type::string_t()),
@@ -1594,7 +1594,7 @@ void LogFormat::updateDateFormat(std::size_t index, base::type::string_t& currFo
   }
 }
 
-void LogFormat::updateFormatSpec(void) {
+void LogFormat::updateFormatSpec() {
   // Do not use switch over strongly typed enums because Intel C++ compilers dont support them yet.
   if (m_level == Level::Debug) {
     base::utils::Str::replaceFirstWithEscape(m_format, base::consts::kSeverityLevelFormatSpecifier,
@@ -1958,7 +1958,7 @@ bool RegisteredLoggers::remove(const std::string& id) {
   return true;
 }
 
-void RegisteredLoggers::unsafeFlushAll(void) {
+void RegisteredLoggers::unsafeFlushAll() {
   ELPP_INTERNAL_INFO(1, "Flushing all log files");
   for (base::LogStreamsReferenceMap::iterator it = m_logStreamsReference.begin();
        it != m_logStreamsReference.end(); ++it) {
@@ -2254,7 +2254,7 @@ Storage::Storage(const LogBuilderPtr& defaultLogBuilder) :
 #endif  // ELPP_ASYNC_LOGGING
 }
 
-Storage::~Storage(void) {
+Storage::~Storage() {
   ELPP_INTERNAL_INFO(4, "Destroying storage");
   getresetELPP(true);
 #if ELPP_ASYNC_LOGGING
@@ -2621,7 +2621,7 @@ base::type::string_t DefaultLogBuilder::build(const LogMessage* logMessage, bool
 
 // LogDispatcher
 
-void LogDispatcher::dispatch(void) {
+void LogDispatcher::dispatch() {
   if (m_proceed && m_dispatchAction == base::DispatchAction::None) {
     m_proceed = false;
   }
@@ -2793,7 +2793,7 @@ void Writer::processDispatch() {
 #endif // ELPP_LOGGING_ENABLED
 }
 
-void Writer::triggerDispatch(void) {
+void Writer::triggerDispatch() {
   if (m_proceed) {
     if (m_msg == nullptr) {
       LogMessage msg(m_level, m_file, m_line, m_func, m_verboseLevel,
@@ -2822,7 +2822,7 @@ void Writer::triggerDispatch(void) {
 
 // PErrorWriter
 
-PErrorWriter::~PErrorWriter(void) {
+PErrorWriter::~PErrorWriter() {
   if (m_proceed) {
 #if ELPP_COMPILER_MSVC
     char buff[256];
@@ -2954,7 +2954,7 @@ std::ostream& operator<<(std::ostream& os, const StackTrace& st) {
   return os;
 }
 
-void StackTrace::generateNew(void) {
+void StackTrace::generateNew() {
 #if ELPP_STACKTRACE
   m_stack.clear();
   void* stack[kMaxStack];
@@ -3170,15 +3170,15 @@ void Loggers::setDefaultConfigurations(const Configurations& configurations, boo
   }
 }
 
-const Configurations* Loggers::defaultConfigurations(void) {
+const Configurations* Loggers::defaultConfigurations() {
   return ELPP->registeredLoggers()->defaultConfigurations();
 }
 
-const base::LogStreamsReferenceMap* Loggers::logStreamsReference(void) {
+const base::LogStreamsReferenceMap* Loggers::logStreamsReference() {
   return ELPP->registeredLoggers()->logStreamsReference();
 }
 
-base::TypedConfigurations Loggers::defaultTypedConfigurations(void) {
+base::TypedConfigurations Loggers::defaultTypedConfigurations() {
   return base::TypedConfigurations(
            ELPP->registeredLoggers()->defaultConfigurations(),
            ELPP->registeredLoggers()->logStreamsReference());
@@ -3200,7 +3200,7 @@ void Loggers::configureFromGlobal(const char* globalConfigurationFilePath) {
   std::string line = std::string();
   std::stringstream ss;
   Logger* logger = nullptr;
-  auto configure = [&](void) {
+  auto configure = [&]() {
     ELPP_INTERNAL_INFO(8, "Configuring logger: '" << logger->id() << "' with configurations \n" << ss.str()
                        << "\n--------------");
     Configurations c;
@@ -3246,7 +3246,7 @@ bool Loggers::configureFromArg(const char* argKey) {
   return true;
 }
 
-void Loggers::flushAll(void) {
+void Loggers::flushAll() {
   ELPP->registeredLoggers()->flushAll();
 }
 
@@ -3254,7 +3254,7 @@ void Loggers::setVerboseLevel(base::type::VerboseLevel level) {
   ELPP->vRegistry()->setLevel(level);
 }
 
-base::type::VerboseLevel Loggers::verboseLevel(void) {
+base::type::VerboseLevel Loggers::verboseLevel() {
   return ELPP->vRegistry()->level();
 }
 
@@ -3264,7 +3264,7 @@ void Loggers::setVModules(const char* modules) {
   }
 }
 
-void Loggers::clearVModules(void) {
+void Loggers::clearVModules() {
   ELPP->vRegistry()->clearModules();
 }
 
@@ -3276,7 +3276,7 @@ std::string Loggers::getCategories() {
   return ELPP->vRegistry()->getCategories();
 }
 
-void Loggers::clearCategories(void) {
+void Loggers::clearCategories() {
   ELPP->vRegistry()->clearCategories();
 }
 
@@ -3290,11 +3290,11 @@ const std::string &Loggers::getFilenameCommonPrefix() {
 
 // VersionInfo
 
-const std::string VersionInfo::version(void) {
+const std::string VersionInfo::version() {
   return std::string("9.96.7");
 }
 /// @brief Release date of current version
-const std::string VersionInfo::releaseDate(void) {
+const std::string VersionInfo::releaseDate() {
   return std::string("24-11-2018 0728hrs");
 }
 
