@@ -1375,7 +1375,7 @@ void CommandLineArgs::setArgs(int argc, char** argv) {
       if (hasParam(m_argv[i])) {
         ELPP_INTERNAL_INFO(1, "Skipping [" << m_argv[i] << "] arg since it already exists");
       } else {
-        m_params.push_back(std::string(m_argv[i]));
+        m_params.emplace_back(m_argv[i]);
       }
     }
   }
@@ -2056,7 +2056,7 @@ void VRegistry::setModules(const char* modules) {
 void VRegistry::setCategories(const char* categories, bool clear) {
   base::threading::ScopedLock scopedLock(lock());
   auto insert = [&](std::stringstream& ss, Level level) {
-    m_categories.push_back(std::make_pair(ss.str(), level));
+    m_categories.emplace_back(ss.str(), level);
     m_cached_allowed_categories.clear();
   };
 
@@ -2692,7 +2692,7 @@ Writer& Writer::construct(int count, const char* loggerIds, ...) {
     const char* id = loggerIds;
     m_loggerIds.reserve(count);
     for (int i = 0; i < count; ++i) {
-      m_loggerIds.push_back(std::string(id));
+      m_loggerIds.emplace_back(id);
       id = va_arg(loggersList, const char*);
     }
     va_end(loggersList);
