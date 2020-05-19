@@ -27,21 +27,19 @@
 # STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
 # THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-cmake_minimum_required(VERSION 3.7)
+cmake_minimum_required(VERSION 2.8.7)
 
 project(easylogging CXX)
+
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+
+find_package(Threads)
 
 add_library(easylogging
   easylogging++.cc)
 
-target_include_directories(easylogging PUBLIC
- $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
-
-
-set_target_properties(easylogging PROPERTIES POSITION_INDEPENDENT_CODE ON
-                                             CXX_STANDARD 11
-                                             CXX_STANDARD_REQUIRED ON)
-
+include_directories("${CMAKE_CURRENT_SOURCE_DIR}")
+include_directories("${CMAKE_CURRENT_BINARY_DIR}")
 target_link_libraries(easylogging
   PRIVATE
     ${CMAKE_THREAD_LIBS_INIT})
@@ -57,3 +55,4 @@ if (BUILD_GUI_DEPS)
         ARCHIVE DESTINATION ${lib_folder}
         LIBRARY DESTINATION ${lib_folder})
 endif()
+set_property(TARGET easylogging APPEND PROPERTY COMPILE_FLAGS "-fPIC")
