@@ -677,7 +677,7 @@ void Logger::configure(const Configurations& configurations) {
   m_isConfigured = false;  // we set it to false in case if we fail
   initUnflushedCount();
   if (m_typedConfigurations != nullptr) {
-    Configurations* c = const_cast<Configurations*>(m_typedConfigurations->configurations());
+    auto* c = const_cast<Configurations*>(m_typedConfigurations->configurations());
     if (c->hasConfiguration(Level::Global, ConfigurationType::Filename)) {
       flush();
     }
@@ -722,7 +722,7 @@ void Logger::flush(Level level, base::type::fstream_t* fs) {
   }
   if (fs != nullptr) {
     fs->flush();
-    std::unordered_map<Level, unsigned int>::iterator iter = m_unflushedCount.find(level);
+    auto iter = m_unflushedCount.find(level);
     if (iter != m_unflushedCount.end()) {
       iter->second = 0;
     }
@@ -742,7 +742,7 @@ void Logger::initUnflushedCount() {
 void Logger::resolveLoggerFormatSpec() const {
   base::type::EnumType lIndex = LevelHelper::kMinValid;
   LevelHelper::forEachLevel(&lIndex, [&]() -> bool {
-    base::LogFormat* logFormat =
+    auto* logFormat =
     const_cast<base::LogFormat*>(&m_typedConfigurations->logFormat(LevelHelper::castFromInt(lIndex)));
     base::utils::Str::replaceFirstWithEscape(logFormat->m_format, base::consts::kLoggerIdFormatSpecifier, m_id);
     return false;
@@ -758,7 +758,7 @@ namespace utils {
 // File
 
 base::type::fstream_t* File::newFileStream(const std::string& filename) {
-  base::type::fstream_t *fs = new base::type::fstream_t(filename.c_str(),
+  auto *fs = new base::type::fstream_t(filename.c_str(),
       base::type::fstream_t::out
 #if !defined(ELPP_FRESH_LOG_FILE)
       | base::type::fstream_t::app
@@ -787,7 +787,7 @@ std::size_t File::getSizeOfFile(base::type::fstream_t* fs) {
   }
   // Since the file stream is appended to or truncated, the current
   // offset is the file size.
-  std::size_t size = static_cast<std::size_t>(fs->tellg());
+  auto size = static_cast<std::size_t>(fs->tellg());
   return size;
 }
 
@@ -817,7 +817,7 @@ bool File::createPath(const std::string& path) {
   }
   int status = -1;
 
-  char* currPath = const_cast<char*>(path.c_str());
+  auto* currPath = const_cast<char*>(path.c_str());
   std::string builtPath = std::string();
 #if ELPP_OS_UNIX
   if (path[0] == '/') {
@@ -1050,7 +1050,7 @@ char* Str::clearBuff(char buff[], std::size_t lim) {
 ///        NOTE: Need to free return value after use!
 char* Str::wcharPtrToCharPtr(const wchar_t* line) {
   std::size_t len_ = wcslen(line) + 1;
-  char* buff_ = static_cast<char*>(malloc(len_ + 1));
+  auto* buff_ = static_cast<char*>(malloc(len_ + 1));
 #      if ELPP_OS_UNIX || (ELPP_OS_WINDOWS && !ELPP_CRT_DBG_WARNINGS)
   std::wcstombs(buff_, line, len_);
 #      elif ELPP_OS_WINDOWS
@@ -1229,7 +1229,7 @@ std::string DateTime::timevalToString(struct timeval tval, const char* format,
 }
 
 base::type::string_t DateTime::formatTime(unsigned long long time, base::TimestampUnit timestampUnit) {
-  base::type::EnumType start = static_cast<base::type::EnumType>(timestampUnit);
+  auto start = static_cast<base::type::EnumType>(timestampUnit);
   const base::type::char_t* unit = base::consts::kTimeFormats[start].unit;
   for (base::type::EnumType i = start; i < base::consts::kTimeFormatsCount - 1; ++i) {
     if (time <= base::consts::kTimeFormats[i].value) {
@@ -1386,7 +1386,7 @@ bool CommandLineArgs::hasParamWithValue(const char* paramKey) const {
 }
 
 const char* CommandLineArgs::getParamValue(const char* paramKey) const {
-  std::unordered_map<std::string, std::string>::const_iterator iter = m_paramsWithValue.find(std::string(paramKey));
+  auto iter = m_paramsWithValue.find(std::string(paramKey));
   return iter != m_paramsWithValue.end() ? iter->second.c_str() : "";
 }
 
@@ -1752,7 +1752,7 @@ void TypedConfigurations::build(Configurations* configurations) {
       insertFile(conf->level(), conf->value());
     }
   }
-  for (std::vector<Configuration*>::iterator conf = withFileSizeLimit.begin();
+  for (auto conf = withFileSizeLimit.begin();
        conf != withFileSizeLimit.end(); ++conf) {
     // This is not unsafe as mutex is locked in currect scope
     unsafeValidateFileRolling((*conf)->level(), base::defaultPreRollOutCallback);
@@ -1826,7 +1826,7 @@ void TypedConfigurations::insertFile(Level level, const std::string& fullFilenam
     base::utils::File::createPath(filePath);
   }
   auto create = [&](Level level) {
-    base::LogStreamsReferenceMap::iterator filestreamIter = m_logStreamsReference->find(resolvedFilename);
+    auto filestreamIter = m_logStreamsReference->find(resolvedFilename);
     base::type::fstream_t* fs = nullptr;
     if (filestreamIter == m_logStreamsReference->end()) {
       // We need a completely new stream, nothing to share with
@@ -1962,7 +1962,7 @@ bool RegisteredLoggers::remove(const std::string& id) {
 
 void RegisteredLoggers::unsafeFlushAll() {
   ELPP_INTERNAL_INFO(1, "Flushing all log files");
-  for (base::LogStreamsReferenceMap::iterator it = m_logStreamsReference.begin();
+  for (auto it = m_logStreamsReference.begin();
        it != m_logStreamsReference.end(); ++it) {
     if (it->second.get() == nullptr) continue;
     it->second->flush();
@@ -2160,7 +2160,7 @@ bool VRegistry::allowed(base::type::VerboseLevel vlevel, const char* file) {
   } else {
     char baseFilename[base::consts::kSourceFilenameMaxLength] = "";
     base::utils::File::buildBaseFilename(file, baseFilename);
-    std::unordered_map<std::string, base::type::VerboseLevel>::iterator it = m_modules.begin();
+    auto it = m_modules.begin();
     for (; it != m_modules.end(); ++it) {
       if (base::utils::Str::wildCardMatch(baseFilename, it->first.c_str())) {
         return vlevel <= it->second;
@@ -2292,7 +2292,7 @@ void Storage::installCustomFormatSpecifier(const CustomFormatSpecifier& customFo
 
 bool Storage::uninstallCustomFormatSpecifier(const char* formatSpecifier) {
   base::threading::ScopedLock scopedLock(customFormatSpecifiersLock());
-  std::vector<CustomFormatSpecifier>::iterator it = std::find(m_customFormatSpecifiers.begin(),
+  auto it = std::find(m_customFormatSpecifiers.begin(),
       m_customFormatSpecifiers.end(), formatSpecifier);
   if (it != m_customFormatSpecifiers.end() && strcmp(formatSpecifier, it->formatSpecifier()) == 0) {
     m_customFormatSpecifiers.erase(it);
@@ -2311,7 +2311,7 @@ void Storage::setApplicationArguments(int argc, char** argv) {
     c.setGlobally(ConfigurationType::Filename,
                   std::string(m_commandLineArgs.getParamValue(base::consts::kDefaultLogFileParam)));
     registeredLoggers()->setDefaultConfigurations(c);
-    for (base::RegisteredLoggers::iterator it = registeredLoggers()->begin();
+    for (auto it = registeredLoggers()->begin();
          it != registeredLoggers()->end(); ++it) {
       it->second->configure(c);
     }
@@ -2610,7 +2610,7 @@ base::type::string_t DefaultLogBuilder::build(const LogMessage* logMessage, bool
 #if !defined(ELPP_DISABLE_CUSTOM_FORMAT_SPECIFIERS)
   el::base::threading::ScopedLock lock_(ELPP->customFormatSpecifiersLock());
   ELPP_UNUSED(lock_);
-  for (std::vector<CustomFormatSpecifier>::const_iterator it = ELPP->customFormatSpecifiers()->begin();
+  for (auto it = ELPP->customFormatSpecifiers()->begin();
        it != ELPP->customFormatSpecifiers()->end(); ++it) {
     std::string fs(it->formatSpecifier());
     base::type::string_t wcsFormatSpecifier(fs.begin(), fs.end());
@@ -2949,7 +2949,7 @@ std::ostream& operator<<(std::ostream& ss, const StackTrace::StackTraceEntry& si
 }
 
 std::ostream& operator<<(std::ostream& os, const StackTrace& st) {
-  std::vector<StackTrace::StackTraceEntry>::const_iterator it = st.m_stack.begin();
+  auto it = st.m_stack.begin();
   while (it != st.m_stack.end()) {
     os << "    " << *it++ << "\n";
   }
@@ -3149,7 +3149,7 @@ Logger* Loggers::reconfigureLogger(const std::string& identity, ConfigurationTyp
 }
 
 void Loggers::reconfigureAllLoggers(const Configurations& configurations) {
-  for (base::RegisteredLoggers::iterator it = ELPP->registeredLoggers()->begin();
+  for (auto it = ELPP->registeredLoggers()->begin();
        it != ELPP->registeredLoggers()->end(); ++it) {
     Loggers::reconfigureLogger(it->second, configurations);
   }
@@ -3157,7 +3157,7 @@ void Loggers::reconfigureAllLoggers(const Configurations& configurations) {
 
 void Loggers::reconfigureAllLoggers(Level level, ConfigurationType configurationType,
                                     const std::string& value) {
-  for (base::RegisteredLoggers::iterator it = ELPP->registeredLoggers()->begin();
+  for (auto it = ELPP->registeredLoggers()->begin();
        it != ELPP->registeredLoggers()->end(); ++it) {
     Logger* logger = it->second;
     logger->configurations()->set(level, configurationType, value);
@@ -3188,7 +3188,7 @@ base::TypedConfigurations Loggers::defaultTypedConfigurations() {
 
 std::vector<std::string>* Loggers::populateAllLoggerIds(std::vector<std::string>* targetList) {
   targetList->clear();
-  for (base::RegisteredLoggers::iterator it = ELPP->registeredLoggers()->list().begin();
+  for (auto it = ELPP->registeredLoggers()->list().begin();
        it != ELPP->registeredLoggers()->list().end(); ++it) {
     targetList->push_back(it->first);
   }
