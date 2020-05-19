@@ -698,8 +698,8 @@ void Logger::reconfigure() {
 }
 
 bool Logger::isValidId(const std::string& id) {
-  for (std::string::const_iterator it = id.begin(); it != id.end(); ++it) {
-    if (!base::utils::Str::contains(base::consts::kValidLoggerIdSymbols, *it)) {
+  for (char it : id) {
+    if (!base::utils::Str::contains(base::consts::kValidLoggerIdSymbols, it)) {
       return false;
     }
   }
@@ -1752,10 +1752,9 @@ void TypedConfigurations::build(Configurations* configurations) {
       insertFile(conf->level(), conf->value());
     }
   }
-  for (auto conf = withFileSizeLimit.begin();
-       conf != withFileSizeLimit.end(); ++conf) {
+  for (auto & conf : withFileSizeLimit) {
     // This is not unsafe as mutex is locked in currect scope
-    unsafeValidateFileRolling((*conf)->level(), base::defaultPreRollOutCallback);
+    unsafeValidateFileRolling(conf->level(), base::defaultPreRollOutCallback);
   }
 }
 
@@ -1962,10 +1961,9 @@ bool RegisteredLoggers::remove(const std::string& id) {
 
 void RegisteredLoggers::unsafeFlushAll() {
   ELPP_INTERNAL_INFO(1, "Flushing all log files");
-  for (auto it = m_logStreamsReference.begin();
-       it != m_logStreamsReference.end(); ++it) {
-    if (it->second.get() == nullptr) continue;
-    it->second->flush();
+  for (auto & it : m_logStreamsReference) {
+    if (it.second.get() == nullptr) continue;
+    it.second->flush();
   }
 }
 
@@ -2311,9 +2309,8 @@ void Storage::setApplicationArguments(int argc, char** argv) {
     c.setGlobally(ConfigurationType::Filename,
                   std::string(m_commandLineArgs.getParamValue(base::consts::kDefaultLogFileParam)));
     registeredLoggers()->setDefaultConfigurations(c);
-    for (auto it = registeredLoggers()->begin();
-         it != registeredLoggers()->end(); ++it) {
-      it->second->configure(c);
+    for (auto & it : *registeredLoggers()) {
+      it.second->configure(c);
     }
   }
 #endif  // !defined(ELPP_DISABLE_LOG_FILE_FROM_ARG)
@@ -3013,13 +3010,13 @@ void StackTrace::generateNew() {
 static std::string crashReason(int sig) {
   std::stringstream ss;
   bool foundReason = false;
-  for (int i = 0; i < base::consts::kCrashSignalsCount; ++i) {
-    if (base::consts::kCrashSignals[i].numb == sig) {
-      ss << "Application has crashed due to [" << base::consts::kCrashSignals[i].name << "] signal";
+  for (const auto & kCrashSignal : base::consts::kCrashSignals) {
+    if (kCrashSignal.numb == sig) {
+      ss << "Application has crashed due to [" << kCrashSignal.name << "] signal";
       if (ELPP->hasFlag(el::LoggingFlag::LogDetailedCrashReason)) {
         ss << std::endl <<
-           "    " << base::consts::kCrashSignals[i].brief << std::endl <<
-           "    " << base::consts::kCrashSignals[i].detail;
+           "    " << kCrashSignal.brief << std::endl <<
+           "    " << kCrashSignal.detail;
       }
       foundReason = true;
     }
