@@ -1608,7 +1608,7 @@ namespace base {
 class LogFormat : public Loggable {
  public:
   LogFormat(void);
-  LogFormat(Level level, const base::type::string_t& format);
+  LogFormat(Level level, base::type::string_t  format);
   LogFormat(const LogFormat& logFormat);
   LogFormat(LogFormat&& logFormat);
   LogFormat& operator=(const LogFormat& logFormat);
@@ -1712,7 +1712,7 @@ class Configuration : public Loggable {
   }
 
   /// @brief Full constructor used to sets value of configuration
-  Configuration(Level level, ConfigurationType configurationType, const std::string& value);
+  Configuration(Level level, ConfigurationType configurationType, std::string  value);
 
   /// @brief Gets level of current configuration
   inline Level level(void) const {
@@ -2245,8 +2245,8 @@ typedef std::shared_ptr<LogBuilder> LogBuilderPtr;
 /// @detail This class does not write logs itself instead its used by writer to read configuations from.
 class Logger : public base::threading::ThreadSafe, public Loggable {
  public:
-  Logger(const std::string& id, base::LogStreamsReferenceMap* logStreamsReference);
-  Logger(const std::string& id, const Configurations& configurations, base::LogStreamsReferenceMap* logStreamsReference);
+  Logger(std::string  id, base::LogStreamsReferenceMap* logStreamsReference);
+  Logger(std::string  id, const Configurations& configurations, base::LogStreamsReferenceMap* logStreamsReference);
   Logger(const Logger& logger);
   Logger& operator=(const Logger& logger);
 
@@ -2379,7 +2379,7 @@ namespace base {
 /// @brief Loggers repository
 class RegisteredLoggers : public base::utils::Registry<Logger, std::string> {
  public:
-  explicit RegisteredLoggers(const LogBuilderPtr& defaultLogBuilder);
+  explicit RegisteredLoggers(LogBuilderPtr  defaultLogBuilder);
 
   virtual ~RegisteredLoggers(void) {
     unsafeFlushAll();
@@ -3650,8 +3650,8 @@ class StackTrace : base::NoCopy {
   static const unsigned int kStackStart = 2;  // We want to skip c'tor and StackTrace::generateNew()
   class StackTraceEntry {
    public:
-    StackTraceEntry(std::size_t index, const std::string& loc, const std::string& demang, const std::string& hex,
-                    const std::string& addr);
+    StackTraceEntry(std::size_t index, std::string  loc, std::string  demang, std::string  hex,
+                    std::string  addr);
     StackTraceEntry(std::size_t index, const std::string& loc) :
       m_index(index),
       m_location(loc) {
