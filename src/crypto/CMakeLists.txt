@@ -45,6 +45,7 @@ set(crypto_sources
   oaes_lib.c
   random.c
   skein.c
+  cn_old_hash.c
   slow-hash.c
   rx-slow-hash.c
   tree-hash.c)
@@ -83,7 +84,7 @@ target_link_libraries(cncrypto
     epee
     randomx
     ${Boost_SYSTEM_LIBRARY}
-    sodium
+    ${SODIUM_LIBRARIES}
   PRIVATE
     ${EXTRA_LIBRARIES})
 

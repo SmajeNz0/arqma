@@ -28,6 +28,7 @@
 # THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 # Parts of this file are originally copyright (c) 2012-2013 The Cryptonote developers
+
 list(INSERT CMAKE_MODULE_PATH 0
   "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(CheckCCompilerFlag)
@@ -39,7 +40,7 @@ include(CheckFunctionExists)
 if(IOS)
     include(CMakeLists_IOS.txt)
     include_directories(/usr/local/include)
-    include_directories("${CMAKE_CURRENT_SOURCE_DIR}/external/ios-headers")
+    include_directories("${CMAKE_SOURCE_DIR}/external/ios-headers")
     include_directories(${SODIUM_INCLUDE_DIRS})
 endif()
 
@@ -48,12 +49,20 @@ message(STATUS "CMake version ${CMAKE_VERSION}")
 
 project(arqma)
 
-set(CMAKE_CXX_STANDARD 14)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
-set(CMAKE_C_STANDARD 11)
-set(CMAKE_C_STANDARD_REQUIRED ON)
-set(CMAKE_C_EXTENSIONS OFF)
+enable_language(C ASM)
+
+function (die msg)
+  if (NOT WIN32)
+    string(ASCII 27 Esc)
+    set(ColourReset "${Esc}[m")
+    set(BoldRed     "${Esc}[1;31m")
+  else ()
+    set(ColourReset "")
+    set(BoldRed     "")
+  endif ()
+
+  message(FATAL_ERROR "${BoldRed}${msg}${ColourReset}")
+endfunction ()
 
 function (add_c_flag_if_supported flag var)
   string(REPLACE "-" "_" supported ${flag}_c)
@@ -221,6 +230,12 @@ enable_testing()
 
 option(BUILD_DOCUMENTATION "Build the Doxygen documentation." ON)
 option(BUILD_TESTS "Build tests." OFF)
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  set(DEFAULT_BUILD_DEBUG_UTILITIES ON)
+else()
+  set(DEFAULT_BUILD_DEBUG_UTILITIES OFF)
+endif()
+option(BUILD_DEBUG_UTILITIES "Build debug utilities." DEFAULT_BUILD_DEBUG_UTILITIES)
 
 # Check whether we're on a 32-bit or 64-bit system
 if(CMAKE_SIZEOF_VOID_P EQUAL "8")
@@ -500,6 +515,9 @@ else()
   elseif(IOS AND ARCH STREQUAL "arm64")
     message(STATUS "IOS: Changing arch from arm64 to armv8")
     set(ARCH_FLAG "-march=armv8")
+  elseif(ANDROID AND ARCH STREQUAL "armv8-a")
+    message(STATUS "Android: Changing arch from armv8")
+    set(ARCH_FLAG "-march=armv8+crypto")
   elseif(IOS AND ARCH STREQUAL "x86_64")
     message(STATUS "IOS: Changing arch from x86_64 to x86-64")
     set(ARCH_FLAG "-march=x86-64")
@@ -551,8 +569,8 @@ else()
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${ARCH_FLAG}")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${ARCH_FLAG}")
 
-  set(WARNINGS "-Wall -Wextra -Wpointer-arith -Wundef -Wvla -Wwrite-strings -Wno-error=extra -Wno-error=deprecated-declarations -Wno-unused-parameter -Wno-unused-variable -Wno-error=unused-variable -Wno-error=undef -Wno-error=uninitialized")
-  if(CMAKE_C_COMPILER_ID STREQUAL "Clang" OR CMAKE_C_COMPILER_ID STREQUAL "AppleClang")
+  set(WARNINGS "-Wall -Wextra -Wpointer-arith -Wundef -Wvla -Wwrite-strings -Wno-error=extra -Wno-error=deprecated-declarations -Wno-unused-parameter -Wno-unused-variable -Wno-error=unused-variable -Wno-error=undef -Wno-error=uninitialized -Wno-error=inconsistent-missing-override -Wno-error=unused-private-field -Wno-error=#warnings")
+  if(CMAKE_C_COMPILER_ID STREQUAL "Clang")
     if(ARM)
       set(WARNINGS "${WARNINGS} -Wno-error=inline-asm")
     endif()
@@ -833,6 +851,11 @@ else()
   set(BOOST_LIBRARIES system filesystem thread date_time chrono regex serialization program_options)
 endif()
 
+if(ANDROID)
+  set(Boost_COMPILER  clang)
+  set(Boost_USE_STATIC_RUNTIME OFF)
+endif()
+
 find_package(Boost 1.62.0 QUIET REQUIRED COMPONENTS ${BOOST_LIBRARIES})
 
 set(CMAKE_FIND_LIBRARY_SUFFIXES ${OLD_LIB_SUFFIXES})
@@ -920,6 +943,13 @@ if(CMAKE_C_COMPILER_ID STREQUAL "Clang" AND ARCH_WIDTH EQUAL "32" AND NOT IOS AN
     list(APPEND EXTRA_LIBRARIES ${ATOMIC})
   endif()
 endif()
+
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(ZMQ REQUIRED libzmq)
+pkg_check_modules(SODIUM REQUIRED libsodium)
+include_directories(${ZMQ_INCLUDE_DIRS} ${SODIUM_INCLUDE_DIRS})
+link_directories(${ZMQ_LIBRARY_DIRS} ${SODIUM_LIBRARY_DIRS})
+
 
 add_subdirectory(contrib)
 add_subdirectory(src)
