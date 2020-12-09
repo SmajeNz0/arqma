@@ -26,7 +26,7 @@
 // STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
 // THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#if defined __GNUC__ && !defined _WIN32
+#if defined __GNUC__ && !defined _WIN32 && !defined __ANDROID__
 #define HAVE_MLOCK 1
 #endif
 
@@ -37,15 +37,6 @@
 #include "misc_log_ex.h"
 #include "syncobj.h"
 #include "mlocker.h"
-
-#include <atomic>
-
-#undef ARQMA_DEFAULT_LOG_CATEGORY
-#define ARQMA_DEFAULT_LOG_CATEGORY "mlocker"
-	
-// did an mlock operation previously fail? we only
-// want to log an error once and be done with it
-static std::atomic<bool> previously_failed{ false };
 
 static size_t query_page_size()
 {
@@ -67,8 +58,7 @@ static void do_lock(void *ptr, size_t len)
 {
 #if defined HAVE_MLOCK
   int ret = mlock(ptr, len);
-  if (ret < 0 && !previously_failed.exchange(true))
-    MERROR("Error locking page at " << ptr << ": " << strerror(errno) << ", subsequent mlock errors will be silenced");
+    MERROR("Error locking page at " << ptr << ": " << strerror(errno));
 #else
 #warning Missing do_lock implementation
 #endif
@@ -78,10 +68,7 @@ static void do_unlock(void *ptr, size_t len)
 {
 #if defined HAVE_MLOCK
   int ret = munlock(ptr, len);
-  // check whether we previously failed, but don't set it, this is just
-  // to pacify the errors of mlock()ing failed, in which case unlocking
-  // is also not going to work of course
-  if (ret < 0 && !previously_failed.load())
+  if (ret < 0)
     MERROR("Error unlocking page at " << ptr << ": " << strerror(errno));
 #else
 #warning Missing implementation of page size detection
@@ -106,27 +93,33 @@ namespace epee
 
   size_t mlocker::get_page_size()
   {
+#if defined(HAVE_MLOCK)
     CRITICAL_REGION_LOCAL(mutex());
     if (page_size == 0)
       page_size = query_page_size();
     return page_size;
+#else
+    return 0;
+#endif
   }
 
   mlocker::mlocker(void *ptr, size_t len): ptr(ptr), len(len)
   {
+#if defined(HAVE_MLOCK)
     lock(ptr, len);
+#endif
   }
 
   mlocker::~mlocker()
   {
-    try { unlock(ptr, len); }
-    catch (...) { /* ignore and do not propagate through the dtor */ }
+#if defined(HAVE_MLOCK)
+    unlock(ptr, len);
+#endif
   }
 
   void mlocker::lock(void *ptr, size_t len)
   {
-    TRY_ENTRY();
-    
+#if defined(HAVE_MLOCK)
     size_t page_size = get_page_size();
     if (page_size == 0)
       return;
@@ -137,14 +130,12 @@ namespace epee
     for (size_t page = first; page <= last; ++page)
       lock_page(page);
     ++num_locked_objects;
-    
-    CATCH_ENTRY_L1("mlocker::lock", void());
+#endif
   }
 
   void mlocker::unlock(void *ptr, size_t len)
   {
-    TRY_ENTRY();
-    
+#if defined(HAVE_MLOCK)
     size_t page_size = get_page_size();
     if (page_size == 0)
       return;
@@ -154,24 +145,32 @@ namespace epee
     for (size_t page = first; page <= last; ++page)
       unlock_page(page);
     --num_locked_objects;
-    
-    CATCH_ENTRY_L1("mlocker::lock", void());
+#endif
   }
 
   size_t mlocker::get_num_locked_pages()
   {
+#if defined(HAVE_MLOCK)
     CRITICAL_REGION_LOCAL(mutex());
     return map().size();
+#else
+    return 0;
+#endif
   }
 
   size_t mlocker::get_num_locked_objects()
   {
+#if defined(HAVE_MLOCK)
     CRITICAL_REGION_LOCAL(mutex());
     return num_locked_objects;
+#else
+    return 0;
+#endif
   }
 
   void mlocker::lock_page(size_t page)
   {
+#if defined(HAVE_MLOCK)
     std::pair<std::map<size_t, unsigned int>::iterator, bool> p = map().insert(std::make_pair(page, 1));
     if (p.second)
     {
@@ -181,10 +180,12 @@ namespace epee
     {
       ++p.first->second;
     }
+#endif
   }
 
   void mlocker::unlock_page(size_t page)
   {
+#if defined(HAVE_MLOCK)
     std::map<size_t, unsigned int>::iterator i = map().find(page);
     if (i == map().end())
     {
@@ -198,5 +199,6 @@ namespace epee
         do_unlock((void*)(page * page_size), page_size);
       }
     }
+#endif
   }
 }
