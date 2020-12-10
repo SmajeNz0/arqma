@@ -176,7 +176,7 @@ RUN CPPZMQ_VERSION=v4.7.1 \
 # ADD arqma /opt/android/arqma
 
 RUN cd /opt/android \
-    && git clone https://github.com/SmajeNz0/arqma.git --recursive --depth=1 \
+    && git clone -b android https://github.com/SmajeNz0/arqma.git --recursive --depth=1 \
     && cd arqma \
     && mkdir -p build/release \
     && ./build-all-arch.sh \
@@ -186,6 +186,6 @@ RUN cd /opt/android \
     && cp  /opt/android/build/libzmq/arm64/lib/libzmq.a /opt/android/arqma/build/release.arm64/external/libzmq/ \
     && mkdir -pv /opt/android/arqma/build/release.x86/external/libzmq \
     && cp  /opt/android/build/libzmq/x86/lib/libzmq.a /opt/android/arqma/build/release.x86/external/libzmq/ \
-    && mkdir -pv /opt/android/arqma/build/release.x86_64/external/libzmq
-    cp  /opt/android/build/libzmq/x86_64/lib/libzmq.a /opt/android/arqma/build/release.x86/external/libzmq/
+    && mkdir -pv /opt/android/arqma/build/release.x86_64/external/libzmq \
+    && cp  /opt/android/build/libzmq/x86_64/lib/libzmq.a /opt/android/arqma/build/release.x86_64/external/libzmq/
 
