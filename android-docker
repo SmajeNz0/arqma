@@ -91,8 +91,10 @@ RUN OPENSSL_VERSION=1.1.1g \
 ## Building Boost
 RUN  git clone https://github.com/moritz-wundke/Boost-for-Android.git \
      && cd Boost-for-Android \
+     && mkdir -pv /opt/android/build \
      && ./build-android.sh --verbose --arch=armeabi-v7a,arm64-v8a,x86,x86_64 --target-version=$ANDROID_API $ANDROID_NDK_ROOT \
      --boost=1.73.0 --with-libraries=system,filesystem,thread,date_time,chrono,regex,serialization,program_options \
+     --layout=system \
      && mkdir -p  /opt/android/build/boost \
      && cp -r /opt/android/Boost-for-Android/build/out/* /opt/android/build/boost/ \
      && mv /opt/android/build/boost/armeabi-v7a /opt/android/build/boost/arm \
@@ -105,32 +107,55 @@ RUN SODIUM_VERSION=1.0.18-RELEASE \
     && cd /opt/android \
     && git clone https://github.com/jedisct1/libsodium.git -b ${SODIUM_VERSION} --depth=1 \
     && cd libsodium \
-    && test `git rev-parse HEAD` = ${SODIUM_HASH} || exit 1 \
-    && ./autogen.sh
+    && test `git rev-parse HEAD` = ${SODIUM_HASH} || exit 1
 
 ## Building Sodium
 RUN cd /opt/android/libsodium \
-    && PATH=$ARM_PATH ; CC=clang CXX=clang++ CFLAGS="-fPIC" CXXFLAGS="-fPIC" \
-    ./configure --prefix=/opt/android/build/libsodium/arm --host=arm-linux-androideabi --enable-static --disable-shared \
+    && ./autogen.sh \
+    && PATH=$ARM_PATH \
+    CC=/opt/android/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi$ANDROID_API-clang \
+    CXX=/opt/android/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi$ANDROID_API-clang++ \
+    AR=/opt/android/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/arm-linux-androideabi-ar \
+    RANLIB=/opt/android/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/arm-linux-androideabi-ranlib \
+    CFLAGS="-fPIC" CXXFLAGS="-fPIC" \
+    ./configure --prefix=/opt/android/build/libsodium/arm --host=armv7a-linux-androideabi --enable-static --disable-shared \
     && make \
     && make install \
     && make clean \
-    && PATH=$ARM64_PATH ; CC=clang CXX=clang++ CFLAGS="-fPIC" CXXFLAGS="-fPIC" \
-    ./configure --prefix=/opt/android/build/libsodium/arm64 --host=aarch64-linux-android --enable-static --disable-shared \
+    && ./autogen.sh \
+    && PATH=$ARM64_PATH \
+    CC=/opt/android/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android$ANDROID_API-clang \
+    CXX=/opt/android/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android$ANDROID_API-clang++ \
+    AR=/opt/android/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android-ar \
+    RANLIB=/opt/android/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android-ranlib \
+    CFLAGS="-fPIC" CXXFLAGS="-fPIC" \
+    ./configure --prefix=/opt/android/build/libsodium/arm64 --host=armv8a-linux-android --enable-static --disable-shared \
     && make \
     && make install \
     && make clean \
-    && PATH=$X86_PATH ; CC=clang CXX=clang++ CFLAGS="-fPIC" CXXFLAGS="-fPIC" \
+    && ./autogen.sh \
+    && PATH=$X86_PATH \
+    CC=/opt/android/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/i686-linux-android$ANDROID_API-clang \
+    CXX=/opt/android/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/i686-linux-android$ANDROID_API-clang++ \
+    AR=/opt/android/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/i686-linux-android-ar \
+    RANLIB=/opt/android/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/i686-linux-android-ranlib \
+    CFLAGS="-fPIC" CXXFLAGS="-fPIC" \
     ./configure --prefix=/opt/android/build/libsodium/x86 --host=i686-linux-android --enable-static --disable-shared \
     && make \
     && make install \
     && make clean \
-    && PATH=$X64_PATH ; CC=clang CXX=clang++ CFLAGS="-fPIC" CXXFLAGS="-fPIC" \
+    && ./autogen.sh \
+    && PATH=$X64_PATH \
+    CC=/opt/android/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/x86_64-linux-android$ANDROID_API-clang \
+    CXX=/opt/android/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/x86_64-linux-android$ANDROID_API-clang++ \
+    AR=/opt/android/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/x86_64-linux-android-ar \
+    RANLIB=/opt/android/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/x86_64-linux-android-ranlib \
+    CFLAGS="-fPIC" CXXFLAGS="-fPIC" \
     ./configure --prefix=/opt/android/build/libsodium/x86_64 --host=x86_64-linux-android --enable-static --disable-shared \
     && make \
     && make install \
     && make clean
-    
+
 # ZMQ
 RUN ZMQ_VERSION=v4.3.3 \
     && ZMQ_HASH=04f5bbedee58c538934374dc45182d8fc5926fa3 \
@@ -143,10 +168,10 @@ RUN ZMQ_VERSION=v4.3.3 \
 ## Building ZMQ
 RUN cd /opt/android/libzmq/builds/android \
     && export MIN_SDK_VERSION=$ANDROID_API \
-    && ./build.sh arm \
-    && ./build.sh arm64 \
-    && ./build.sh x86 \
-    && ./build.sh x86_64 \
+    && CFLAGS="-fPIC" CXXFLAGS="-fPIC" ./build.sh arm \
+    && CFLAGS="-fPIC" CXXFLAGS="-fPIC" ./build.sh arm64 \
+    && CFLAGS="-fPIC" CXXFLAGS="-fPIC" ./build.sh x86 \
+    && CFLAGS="-fPIC" CXXFLAGS="-fPIC" ./build.sh x86_64 \
     && mkdir -pv /opt/android/build/libzmq \ 
     && cp -r ./prefix/* /opt/android/build/libzmq/
 
