@@ -7,7 +7,7 @@
 
  build_type=release # or debug
 
- android_api=21
+ android_api=$ANDROID_API
  archs=(arm arm64 x86 x86_64)
  #archs=(arm64)
 

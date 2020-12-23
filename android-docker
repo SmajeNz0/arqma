@@ -6,7 +6,7 @@ ENV ARM_PATH $ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin:$ANDROI
 ENV ARM64_PATH $ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin:$ANDROID_NDK_ROOT/toolchains/aarch64-linux-android-4.9/prebuilt/linux-x86_64/bin:$PATH
 ENV X86_PATH $ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin:$ANDROID_NDK_ROOT/toolchains/x86-4.9/prebuilt/linux-x86_64/bin:$PATH
 ENV X64_PATH $ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin:$ANDROID_NDK_ROOT/toolchains/x86_64-4.9/prebuilt/linux-x86_64/bin:$PATH
-ENV ANDROID_API 21
+ENV ANDROID_API 23
 
 RUN set -ex  \
     && apt-get update \
